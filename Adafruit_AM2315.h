@@ -21,10 +21,12 @@
 #define AM2315_I2CADDR       0x5C
 #define AM2315_READREG       0x03
 
-class Adafruit_AM2315 {
+class Adafruit_AM2315 
+{
  public:
   Adafruit_AM2315();
   boolean begin(void);
+  bool setId(int);
   float readTemperature(void);
   float readHumidity(void);
   bool readTemperatureAndHumidity(float&, float&);
