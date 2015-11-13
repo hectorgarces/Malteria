@@ -19,6 +19,12 @@
 Adafruit_AM2315::Adafruit_AM2315() {
 }
 
+boolean Adafruit_AM2315::setId(int i2c_id) 
+{
+  // Se copia la direccion en el atributo m_AM2315_I2CADDR
+  m_AM2315_I2CADDR = i2c_id;
+}
+
 
 boolean Adafruit_AM2315::begin(void) {
   Wire.begin();
@@ -31,12 +37,12 @@ boolean Adafruit_AM2315::readData(void) {
   uint8_t reply[10];
   
   // Wake up the sensor
-  Wire.beginTransmission(AM2315_I2CADDR);
+  Wire.beginTransmission(m_AM2315_I2CADDR);
   delay(2);
   Wire.endTransmission();
 
   // OK lets ready!
-  Wire.beginTransmission(AM2315_I2CADDR);
+  Wire.beginTransmission(m_AM2315_I2CADDR);
   Wire.write(AM2315_READREG);
   Wire.write(0x00);  // start at address 0x0
   Wire.write(4);  // request 4 bytes data
@@ -44,13 +50,13 @@ boolean Adafruit_AM2315::readData(void) {
   
   delay(10); // add delay between request and actual read!
 
-  Wire.requestFrom(AM2315_I2CADDR, 8);
+  Wire.requestFrom(m_AM2315_I2CADDR, 8);
   for (uint8_t i=0; i<8; i++) {
     reply[i] = Wire.read();
     //Serial.println(reply[i], HEX);
   }
   
-  if (reply[0] != AM2315_READREG) return false;
+  if (reply[0] != m_AM2315_I2CADDR) return false;
   if (reply[1] != 4) return false; // bytes req'd
   
   humidity = reply[2];
