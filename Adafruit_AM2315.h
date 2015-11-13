@@ -33,5 +33,6 @@ class Adafruit_AM2315
   
  private:
   boolean readData(void);
+  int m_AM2315_I2CADDR;
   float humidity, temp;
 };
