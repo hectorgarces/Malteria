@@ -1,6 +1,11 @@
 #include <Wire.h>
 #include <Adafruit_AM2315.h>
 
+#define ID_I2C_TEMP1  11
+#define ID_I2C_TEMP2  12
+#define ID_I2C_TEMP3  13
+#define ID_I2C_TEMP4  14
+
 /*************************************************** 
   This is an example for the AM2315 Humidity + Temp sensor
   Designed specifically to work with the Adafruit BMP085 Breakout 
@@ -13,7 +18,6 @@
   Written by Limor Fried/Ladyada for Adafruit Industries.  
   BSD license, all text above must be included in any redistribution
  ****************************************************/
-
 // Connect RED of the AM2315 sensor to 5.0V
 // Connect BLACK to Ground
 // Connect WHITE to i2c clock - on '168/'328 Arduino Uno/Duemilanove/etc thats Analog 5
@@ -21,9 +25,15 @@
 
 Adafruit_AM2315 Temp1, Temp2, Temp3, Temp4;
 
-void setup() {
+void setup() 
+{
   Serial.begin(9600);
   Serial.println("AM2315 Test!");
+
+  Temp1.setId(ID_I2C_TEMP1);
+  Temp2.setId(ID_I2C_TEMP2);
+  Temp3.setId(ID_I2C_TEMP3);
+  Temp4.setId(ID_I2C_TEMP4);
 
   if (! am2315.begin()) {
      Serial.println("Sensor not found, check wiring & pullups!");
