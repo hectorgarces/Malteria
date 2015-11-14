@@ -26,7 +26,7 @@ class Adafruit_AM2315
  public:
   Adafruit_AM2315();
   boolean begin(void);
-  bool setId(int);
+  bool setI2cAdd(int);
   float readTemperature(void);
   float readHumidity(void);
   bool readTemperatureAndHumidity(float&, float&);
