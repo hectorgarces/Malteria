@@ -16,24 +16,30 @@
   #include <util/delay.h>
 #endif
 
-Adafruit_AM2315::Adafruit_AM2315() {
+//Constructor
+Adafruit_AM2315::Adafruit_AM2315() 
+{
+
 }
 
-boolean Adafruit_AM2315::setId(int i2c_id) 
+// setI2cAdd: configura la direccion del bus i2c
+boolean Adafruit_AM2315::setI2cAdd(int i2c_id) 
 {
   // Se copia la direccion en el atributo m_AM2315_I2CADDR
   m_AM2315_I2CADDR = i2c_id;
 }
 
 
-boolean Adafruit_AM2315::begin(void) {
+boolean Adafruit_AM2315::begin(void) 
+{
   Wire.begin();
   
    // try to read data, as a test
   return readData();
 }
 
-boolean Adafruit_AM2315::readData(void) {
+boolean Adafruit_AM2315::readData(void) 
+{
   uint8_t reply[10];
   
   // Wake up the sensor
@@ -51,7 +57,8 @@ boolean Adafruit_AM2315::readData(void) {
   delay(10); // add delay between request and actual read!
 
   Wire.requestFrom(m_AM2315_I2CADDR, 8);
-  for (uint8_t i=0; i<8; i++) {
+  for (uint8_t i=0; i<8; i++) 
+  {
     reply[i] = Wire.read();
     //Serial.println(reply[i], HEX);
   }
@@ -78,12 +85,14 @@ boolean Adafruit_AM2315::readData(void) {
 }
 
 
-float Adafruit_AM2315::readTemperature(void) {
+float Adafruit_AM2315::readTemperature(void) 
+{
   if (! readData()) return NAN;
   return temp;
 }
 
-float Adafruit_AM2315::readHumidity(void) {
+float Adafruit_AM2315::readHumidity(void) 
+{
   if (! readData()) return NAN;
   return humidity;
 }
@@ -97,7 +106,8 @@ float Adafruit_AM2315::readHumidity(void) {
  * readingings (the AM2315 manual advisess that continuous samples must be at least 2 seconds apart).
  * Calling this method avoids the double I2C request.
  */
-bool Adafruit_AM2315::readTemperatureAndHumidity(float &t, float &h) {
+bool Adafruit_AM2315::readTemperatureAndHumidity(float &t, float &h) 
+{
     if (!readData()) return false;
     
     t = temp;
