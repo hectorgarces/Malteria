@@ -1,10 +1,10 @@
 #include <Wire.h>
 #include <Adafruit_AM2315.h>
 
-#define ID_I2C_TEMP1  11
-#define ID_I2C_TEMP2  12
-#define ID_I2C_TEMP3  13
-#define ID_I2C_TEMP4  14
+#define ID_I2C_TEMP1  0x11
+#define ID_I2C_TEMP2  0x12
+#define ID_I2C_TEMP3  0x13
+#define ID_I2C_TEMP4  0x14
 
 /*************************************************** 
   This is an example for the AM2315 Humidity + Temp sensor
@@ -23,22 +23,42 @@
 // Connect WHITE to i2c clock - on '168/'328 Arduino Uno/Duemilanove/etc thats Analog 5
 // Connect YELLOW to i2c data - on '168/'328 Arduino Uno/Duemilanove/etc thats Analog 4
 
-Adafruit_AM2315 Temp1, Temp2, Temp3, Temp4;
+Adafruit_AM2315 Sensor1, Sensor2, Sensor3, Sensor4;
 
 void setup() 
 {
   Serial.begin(9600);
   Serial.println("AM2315 Test!");
 
-  Temp1.setId(ID_I2C_TEMP1);
-  Temp2.setId(ID_I2C_TEMP2);
-  Temp3.setId(ID_I2C_TEMP3);
-  Temp4.setId(ID_I2C_TEMP4);
+  Sensor1.setI2cAdd(ID_I2C_TEMP1);
+  Sensor1.setI2cAdd(ID_I2C_TEMP2);
+  Sensor1.setI2cAdd(ID_I2C_TEMP3);
+  Sensor1.setI2cAdd(ID_I2C_TEMP4);
 
-  if (! am2315.begin()) {
-     Serial.println("Sensor not found, check wiring & pullups!");
+  if (! Sensor1.begin()) 
+  {
+     Serial.println("Sensor 1 not found, check wiring & pullups!");
      while (1);
   }
+  
+    if (! Sensor2.begin()) 
+  {
+     Serial.println("Sensor 2 not found, check wiring & pullups!");
+     while (1);
+  }
+  
+    if (! Sensor3.begin()) 
+  {
+     Serial.println("Sensor 3 not found, check wiring & pullups!");
+     while (1);
+  }
+  
+    if (! Sensor4.begin()) 
+  {
+     Serial.println("Sensor 4 not found, check wiring & pullups!");
+     while (1);
+  }
+  
 }
 
 void loop() {
