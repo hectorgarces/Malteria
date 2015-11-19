@@ -76,29 +76,22 @@ void loop() {
 }
 
 
-
-
-
-
- 
- 
 void printTempLCD(int t1, int t2, int t3, int t4)
 {
+ String temp1 = String("T1=" + t1); //Se forma la cadena de texto de la temperatura T1
+ String temp2 = String("T2=" + t2); //Se forma la cadena de texto de la temperatura T2
+ String temp3 = String("T3=" + t3); //Se forma la cadena de texto de la temperatura T3
+ String temp4 = String("T4=" + t4); //Se forma la cadena de texto de la temperatura T4
  
- String temp1 = "T1=" + t1; 
- String temp2 = "T2=" + t2;
- String temp3 = "T3=" + t3;
- String temp4 = "T4=" + t4;
+ String line1 = String(temp1 + " | " + temp2); // Se forma la cadena de la linea 1 del display
+ String line2 = String(temp3 + " | " + temp4); // Se forma la cadena de la linea 2 del display
  
- String line1 = temp1 + " " + temp2;
- String line2 = temp3 + " " + temp4;
- 
-//ejecutamos esto solo la primera vez
-lcd.clear(); //limpiamos cualquier contenido residual
+  //ejecutamos esto solo la primera vez
+ lcd.clear(); //limpiamos cualquier contenido residual
 
-lcd.setCursor(0,0); //ponemos el cursos en la columna 0, fila 0
-lcd.print(line1); //imprimos este texto
-lcd.setCursor(0,1); //ponemos el cursos en la columna 0, fila 0
-lcd.print(line2); //imprimos este texto
+ lcd.setCursor(0,0); //ponemos el cursos en la columna 0, fila 0
+ lcd.print(line1); //imprimos este texto
+ lcd.setCursor(0,1); //ponemos el cursos en la columna 0, fila 0
+ lcd.print(line2); //imprimos este texto
 
 }
