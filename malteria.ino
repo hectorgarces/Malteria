@@ -1,7 +1,6 @@
 #include <Wire.h>
 #include <Adafruit_AM2315.h>
-#include <LiquidCrystal_I2C.h>
-
+#include <bqLiquidCrystal.h>
 
 
 #define BACKLIGHT_PIN     13
@@ -22,7 +21,7 @@
 /****************************************************/
 
 Adafruit_AM2315 Sensor1, Sensor2, Sensor3, Sensor4;
-LiquidCrystal_I2C lcd(LCD_I2C_ADD, LCD_CHARTS, LCD_LINES);  // Set the LCD I2C address
+LiquidCrystal lcd(0); //creamos un objeto LCD 
 
 void setup() 
 {
@@ -30,12 +29,12 @@ void setup()
   Serial.println("AM2315 Test!");
   
   // INICIALIZACION DEL LCD POR I2C
-  lcd.init();               // initialize the lcd 
-  lcd.clear();
-  lcd.home ();                   // go home
-  lcd.print("Hello, ARDUINO ");  
-  lcd.setCursor ( 0, 1 );        // go to the next line
-  lcd.print (" WORLD!  ");     
+  lcd.begin(20, 2); //inicializamos el LCD, 20 columnas, 4 filas
+  lcd.clear(); //borramos cualquier contenido residual   
+  lcd.setCursor(0,0); //ponemos el cursos en la columna 0, fila 0
+  lcd.print("Malteria"); //imprimos este texto
+  lcd.setCursor(0,1); //ponemos el cursos en la columna 0, fila 0
+  lcd.print("Daniel Lozano"); //imprimos este texto
 
   // INICIALIZACION DE LOS SENSORES
   Sensor1.setI2cAdd(ID_I2C_TEMP1);
@@ -74,4 +73,32 @@ void loop() {
   Serial.print("Temp: "); Serial.println(am2315.readTemperature());
 
   delay(1000);
+}
+
+
+
+
+
+
+ 
+ 
+void printTempLCD(int t1, int t2, int t3, int t4)
+{
+ 
+ String temp1 = "T1=" + t1; 
+ String temp2 = "T2=" + t2;
+ String temp3 = "T3=" + t3;
+ String temp4 = "T4=" + t4;
+ 
+ String line1 = temp1 + " " + temp2;
+ String line2 = temp3 + " " + temp4;
+ 
+//ejecutamos esto solo la primera vez
+lcd.clear(); //limpiamos cualquier contenido residual
+
+lcd.setCursor(0,0); //ponemos el cursos en la columna 0, fila 0
+lcd.print(line1); //imprimos este texto
+lcd.setCursor(0,1); //ponemos el cursos en la columna 0, fila 0
+lcd.print(line2); //imprimos este texto
+
 }
