@@ -4,7 +4,6 @@
 #include <Wire.h>
  
 /***   Global variables   ***/
-bool firstTime=true;
 LiquidCrystal lcd(0); //creamos un objeto LCD
  
 void setup()
