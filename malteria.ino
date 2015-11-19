@@ -2,11 +2,7 @@
 #include <Adafruit_AM2315.h>
 #include <bqLiquidCrystal.h>
 
-
-#define BACKLIGHT_PIN     13
-#define LCD_LINES     2
-#define LCD_CHARTS    16
-#define LCD_I2C_ADD   0x27
+#define LCD_I2C_ADD   0x20
 
 #define ID_I2C_TEMP1  0x11
 #define ID_I2C_TEMP2  0x12
@@ -21,7 +17,7 @@
 /****************************************************/
 
 Adafruit_AM2315 Sensor1, Sensor2, Sensor3, Sensor4;
-LiquidCrystal lcd(0); //creamos un objeto LCD 
+LiquidCrystal lcd(0); //creamos un objeto LCD por I2C, direccionado en 0x20 y a 100KHz
 
 void setup() 
 {
@@ -68,11 +64,23 @@ void setup()
   
 }
 
-void loop() {
-  Serial.print("Hum: "); Serial.println(am2315.readHumidity());
-  Serial.print("Temp: "); Serial.println(am2315.readTemperature());
-
-  delay(1000);
+void loop() 
+{
+ int t1=0;
+ int t2=10;
+ int t3=20;
+ int t4=30;
+ 
+ //Serial.print("Hum: "); Serial.println(am2315.readHumidity());
+ //Serial.print("Temp: "); Serial.println(am2315.readTemperature());
+ printTempLCD(t1, t2, t3, t4);
+ 
+ t1++;
+ t2++;
+ t3++;
+ t4++;
+ 
+ delay(1000);
 }
 
 
@@ -93,5 +101,4 @@ void printTempLCD(int t1, int t2, int t3, int t4)
  lcd.print(line1); //imprimos este texto
  lcd.setCursor(0,1); //ponemos el cursos en la columna 0, fila 0
  lcd.print(line2); //imprimos este texto
-
 }
