@@ -7,6 +7,14 @@
 #define ID_I2C_TEMP1  0x11
 #define ID_I2C_TEMP2  0x12
 
+#define C1OFF_C2OFF  1
+#define C1ON_C2OFF  2
+#define C1ON_C2OFF  3
+
+#define TEMP_MIN  40  //En grados Celsius
+#define TEMP_MAX  60  //En grados Celsius
+#define TIEMPO_CALENTAMIENTO_C1  60 // En segundos
+
  /****************************************************/
 // Connect RED of the AM2315 sensor to 5.0V
 // Connect BLACK to Ground
@@ -21,6 +29,7 @@ int temperatura1 = 0;
 int temperatura2 = 0;
 int calentador1 = 0;
 int calentador2 = 0;
+int state = C1OFF_C2OFF;
 
 void setup() 
 {
@@ -54,7 +63,6 @@ void setup()
 
 void loop() 
 {
-
  //Serial.print("Hum: "); Serial.println(am2315.readHumidity());
  //Serial.print("Temp: "); Serial.println(am2315.readTemperature());
  temperatura1 = (int)(am2315.readTemperature());
@@ -62,7 +70,7 @@ void loop()
  
  switch(state)
  {
-  case OFF:
+  case C1OFF_C2OFF:
    // Se arranca el calentador 1 y se almacena el timestamp para saber cuando se arranco el calentador 1
    break;
    
@@ -86,13 +94,9 @@ void loop()
   
   
  }
- 
- 
  printTempLCD(temperatura1, temperatura2);
  printHeaterStatusLCD(calentador1, calentador2);
- 
- t1++;
- t2++;
+
  delay(1000);
 }
 
