@@ -7,9 +7,9 @@
 #define ID_I2C_TEMP1  0x11
 #define ID_I2C_TEMP2  0x12
 
-#define C1OFF_C2OFF  1
+#define C1OFF_C2OFF  0
+#define C1ON_C2OFF  1
 #define C1ON_C2OFF  2
-#define C1ON_C2OFF  3
 
 #define TEMP_MIN  40  //En grados Celsius
 #define TEMP_MAX  60  //En grados Celsius
