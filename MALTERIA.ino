@@ -5,8 +5,17 @@
 #include <avr/wdt.h>
 #include <EEPROM.h>
 
-#define DIRECCION_ESTADO_EEPROM  0
-#define DIRECCION_ULTIMA_TEMPERATURA_EEPROM  1
+//Definicion de temperaturas limites
+#define TEMP_MIN  20  //En grados Celsius
+#define TEMP_MAX  22  //En grados Celsius
+
+// Definicion de tiempos de calentamiento y enfriamiento
+#define TIEMPO_CALENTAMIENTO  60L // En segundos y en formato LONG
+#define TIEMPO_ENFRIAMIENTO  60L // En segundos y en formato LONG
+
+#define LCD_I2C_ADD   0x20
+
+#define DIRECCION_STATE_EEPROM  0
 
 #define LED1  13
 #define LED2  12
@@ -28,18 +37,11 @@
 #define RELAY4  8
 
 // Posibles estados del sistema
-#define C1OFF_C2OFF  0
-#define C1ON_C2OFF  1
-#define C1OFF_C2ON  2
-#define C1ON_C2ON  3
-
-//Definicion de temperaturas limites
-#define TEMP_MIN  20  //En grados Celsius
-#define TEMP_MAX  30  //En grados Celsius
-
-// Definicion de tiempos de calentamiento y enfriamiento
-#define TIEMPO_CALENTAMIENTO  60 // En segundos
-#define TIEMPO_ENFRIAMIENTO  60 // En segundos
+#define C1STOP_C2STOP  0x00
+#define C1OFF_C2OFF  0x01
+#define C1ON_C2OFF  0x02
+#define C1OFF_C2ON  0x03
+#define C1ON_C2ON  0x04
 
  /****************************************************/
 // Connect RED of the AM2315 sensor to 5.0V
@@ -47,6 +49,7 @@
 // Connect WHITE to i2c clock - on '168/'328 Arduino Uno/Duemilanove/etc thats Analog 5
 // Connect YELLOW to i2c data - on '168/'328 Arduino Uno/Duemilanove/etc thats Analog 4
 /****************************************************/
+
 Adafruit_AM2315 am2315;
 LiquidCrystal lcd(0); //creamos un objeto LCD por I2C, direccionado en 0x20 y a 100KHz
 
@@ -55,32 +58,24 @@ int temperatura2 = 0;
 int calentador1 = 0;
 int calentador2 = 0;
 
-byte estado;
-byte ultima_temperatura;
+byte state;// = C1OFF_C2OFF;
+//byte state_eeprom;
 
-unsigned long tiempo_calentamiento = 0; 
-unsigned long tiempo_enfriamiento = 0; 
+unsigned long timeout_calentamiento = 0; 
+unsigned long timeout_enfriamiento = 0; 
 
-unsigned long tiempo_Actual = 0;
-unsigned long tiempo_C1ON = 0;
-unsigned long tiempo_C1OFF = 0;
-unsigned long tiempo_C2ON = 0;
-unsigned long tiempo_C2OFF = 0;
+unsigned long timeActual = 0;
+unsigned long timeC1ON = 0;
+unsigned long timeC1OFF = 0;
+unsigned long timeC2ON = 0;
+unsigned long timeC2OFF = 0;
 
 void setup() 
 {
+  timeout_calentamiento = TIEMPO_CALENTAMIENTO * 1000; //en milisegundos
+  timeout_enfriamiento = TIEMPO_ENFRIAMIENTO * 1000; //en milisegundos
   Serial.begin(9600);
-  Serial.println("AM2315 Test!");
-  
-  // Se lee el ultimo estado del sistema
-  estado = EEPROM.read(DIRECCION_ESTADO_EEPROM);
-  // Se pone el sistema en ese estado
-  fijarEstado(estado);
-  
-  ultima_temperatura = EEPROM.read(DIRECCION_ULTIMA_TEMPERATURA_EEPROM);
-  
-  tiempo_calentamiento = TIEMPO_CALENTAMIENTO * 1000; //en milisegundos
-  tiempo_enfriamiento = TIEMPO_ENFRIAMIENTO * 1000; //en milisegundos  
+  Serial.println("MALTERIA!");
 
   // Se configuran los pines como salidas
   pinMode(RELAY1, OUTPUT);      
@@ -101,149 +96,158 @@ void setup()
   
   
   // INICIALIZACION DEL LCD POR I2C
-  lcd.begin(20, 2); //inicializamos el LCD, 20 columnas, 4 filas
+  lcd.begin(16, 2); //inicializamos el LCD, 20 columnas, 4 filas
   lcd.clear(); //borramos cualquier contenido residual   
   lcd.setCursor(0,0); //ponemos el cursos en la columna 0, fila 0
   lcd.print("Malteria"); //imprimos este texto
   lcd.setCursor(0,1); //ponemos el cursos en la columna 0, fila 0
   lcd.print("Daniel Lozano"); //imprimos este texto
 
-  while (! am2315.begin()) 
-  {
-     Serial.println("Sensor 1 not found, check wiring & pullups!");
-     delay(1000);
-  }
+  Serial.print("AM2315");
+  am2315.begin(); 
+
+  attachInterrupt(0,botonStop,FALLING);
   
-  wdt_disable(); // Desactivar el watchdog mientras se configura
-  wdt_enable(WDTO_8S); // Configurar a 8 segundos
+  // Se habilita el Watchdog a 8 segundos
+  wdt_enable(WDTO_8S);
   
-  attachInterrupt( 0, ServicioBotonStop, FALLING); // Interrupcion de boton en el pin 2
-  attachInterrupt( 1, ServicioBotonClear, FALLING); // Interrupcion de boton en el pin 3
+  state = EEPROM.read(DIRECCION_STATE_EEPROM);
+  Serial.print("Sistema Iniciado ");
 
 }// FIN del SETUP
 
-
-
-/************************ BUCLE PRINCIPAL *************************/
+// BUCLE PRINCIPAL
 void loop() 
 {
-  wdt_reset(); // Actualizar el watchdog para que no produzca un reinicio
-  
+  // Se reinicia el WatchDog
+  wdt_reset();
+  Serial.print("Pre - Temperatura1: "); Serial.println(temperatura1);
+  //Serial.print("Pre - Temperatura2: "); Serial.println(temperatura2);
   temperatura1 = (int)(am2315.readTemperature());
   //temperatura2 = (int)(SHT2x.GetTemperature());
   Serial.print("Temperatura1: "); Serial.println(temperatura1);
   //Serial.print("Temperatura2: "); Serial.println(temperatura2);
+
+ timeActual = millis();
  
-  // En cada cilco se obtiene el tiempo actual (en milisegundos)
-  tiempo_Actual = millis();
+ Serial.print("STATE: "); Serial.println(state);
  
-  //MAQUIANA DE ESTADOS
-  switch(estado)
-  {
-    
+ switch(state)
+ {
+   //SISTEMA PARADO
+   case C1STOP_C2STOP:
+     fixState(C1STOP_C2STOP);
+     break;
+     
    //LOS DOS CALENTADORES APAGADOS
    case C1OFF_C2OFF:
-   // Se arranca el calentador 1 y se almacena el timestamp para saber cuando se arranco el calentador 1
-   if((int)temperatura1 < TEMP_MIN)
-   {
-     estado = C1ON_C2OFF;
-     fijarEstado(C1ON_C2OFF);
-     tiempo_C1ON = millis();
-   }
-   else if( ((int)temperatura1 >= TEMP_MIN) && ((int)temperatura1 <= TEMP_MAX) )
-   {
-      break;     
-   }
-   else if((int)temperatura1 > TEMP_MAX)
-   {
-      break; 
-   }
-   break;
+     fixState(C1OFF_C2OFF);
+     Serial.print("CASE C1OFF_C2OFF ");
+     // Se arranca el calentador 1 y se almacena el timestamp para saber cuando se arranco el calentador 1
+     if((int)temperatura1 < TEMP_MIN)
+     {
+       state = C1ON_C2OFF;
+       fixState(C1ON_C2OFF);
+       timeC1ON = millis();
+     }
+     else if( ((int)temperatura1 >= TEMP_MIN) && ((int)temperatura1 < TEMP_MAX) )
+     {
+        break;     
+     }
+     else if((int)temperatura1 >= TEMP_MAX)
+     {
+        break; 
+     }
+     break;
    
    // CALENTADOR1 = ON y CALENTADOR2 = OFF
-   case C1ON_C2OFF:
+  case C1ON_C2OFF:
+    fixState(C1ON_C2OFF);
+    Serial.print("CASE C1ON_C2OFF ");
     // Se comprueba la temperatura del sensor con la temperatura minima del malteador
     // Si el tiempo transucrrido desde que se arranco el calentador 1 es mayor al tiempo de calentamiento,
     // se arranca el calentador 2.
     // Se comprueba la temperatura del sensor con la temperatura maxima del malteador
     // Si se alcanza la temperarura maxima, se apaga el Calentador 1
+    Serial.print("T_Actual: "); Serial.println(timeActual);
+    Serial.print("T_C1ON: "); Serial.println(timeC1ON);
+    Serial.print("T_Calent: "); Serial.println(timeout_calentamiento);
+    
     // Si no se ha alcanzado la temperatura minima tras un tiempo de calentamiento
     // hay que anrrancar el calentador 2
     if((int)temperatura1 < TEMP_MIN)
     {
       // Se comprueba si se ha superado el tiempo de calentamiento desde el arranque del calentador 1
       // para arrancar el calentador 2
-      if(tiempo_Actual > tiempo_C1ON + tiempo_calentamiento)
+      if(timeActual > timeC1ON + timeout_calentamiento)
       {              
-        estado = C1ON_C2ON;
-        //fijarEstado(C1ON_C2ON);      
-        tiempo_C2ON = millis();
+        state = C1ON_C2ON;
+        fixState(C1ON_C2ON);      
+        timeC2ON = millis();
       }
       else
         break;
      }
      
-    else if( ((int)temperatura1 >= TEMP_MIN) && ((int)temperatura1 <= TEMP_MAX) )
+    else if( ((int)temperatura1 >= TEMP_MIN) && ((int)temperatura1 < TEMP_MAX) )
     {
-      if(tiempo_Actual > tiempo_C1ON + tiempo_calentamiento)
+      if(timeActual > timeC1ON + timeout_calentamiento)
       {              
-        estado = C1ON_C2ON;
-        //fijarEstado(C1ON_C2ON);    
-        tiempo_C2ON = millis();  
+        state = C1ON_C2ON;
+        fixState(C1ON_C2ON);    
+        timeC2ON = millis();  
       }
       else
         break;
     }   
    
-   // Si se ha superado la temperatura maxima, se apaga el calentador 1 pasado un tiempo de enfriamiento
-   else if((int)temperatura1 > TEMP_MAX)
+   // Si se ha superado la temperatura maxima, se apaga el calentador 1
+   else if((int)temperatura1 >= TEMP_MAX)
    {
-     if(tiempo_Actual > tiempo_C2OFF + tiempo_enfriamiento)
-     {  
-       estado = C1OFF_C2OFF;
-       //fijarEstado(C1OFF_C2OFF);    
-       tiempo_C1OFF = millis(); 
+     if(timeActual > timeC2OFF + timeout_enfriamiento)
+     {
+       state = C1OFF_C2OFF;
+       fixState(C1OFF_C2OFF);    
+       timeC1OFF = millis();
      }
-     else
-       break;
-   }            
+    else 
+     break; 
+   } 
+           
    break;
    
-   case C1ON_C2ON:
+  case C1ON_C2ON:
+    Serial.print("CASE C1ON_C2ON ");
+    fixState(C1ON_C2ON);
     // Se comprueba la temperatura del sensor con la temperatura maxima del malteador
     // Si se alcanza la temperarura maxima, se apaga el Calentador 2
     if((int)temperatura1 < TEMP_MIN)
       break;
          
-    else if( ((int)temperatura1 >= TEMP_MIN) && ((int)temperatura1 <= TEMP_MAX) )
-      break;
+    else if( ((int)temperatura1 >= TEMP_MIN) && ((int)temperatura1 < TEMP_MAX) )
+        break;
        
-    // Si se llega la temperatura maxima, se apaga el calentador 2
-    else if((int)temperatura1 > TEMP_MAX)
+    else if((int)temperatura1 >= TEMP_MAX)
     {
-      estado = C1ON_C2OFF;
-      //fijarEstado(C1ON_C2OFF);
-      tiempo_C2OFF = millis();      
-    }      
+      state = C1ON_C2OFF;
+      fixState(C1ON_C2OFF);
+      timeC2OFF = millis();      
+    }  
+    
    break;
    
   default:
+   state = C1OFF_C2OFF;
    break;
   }// FIN del SWITCH
-  
-  
- fijarEstado(estado);
+ 
+ delay(3000);
  lcd.clear();
  printTempLCD(temperatura1, temperatura2);
  printHeaterStatusLCD(calentador1, calentador2);
-  // Se alamacena el valor del estado en la memoria EEPROM
- EEPROM.write(DIRECCION_ESTADO_EEPROM, estado);
- // Se alamacena el valor del ultimo valor de temperatura
- EEPROM.write(DIRECCION_ULTIMA_TEMPERATURA_EEPROM, (byte)temperatura1);
 
- delay(3000);
 }// FIN del LOOP
-/*******************************************************************************************/
+
 
 void printTempLCD(int t1, int t2)
 {
@@ -258,16 +262,25 @@ void printTempLCD(int t1, int t2)
   lcd.setCursor(0,1); //ponemos el cursos en la columna 0, fila 1
   lcd.print(line); //imprimos este texto
 }
-/*******************************************************************************************/
+
 
 void printHeaterStatusLCD(int C1State, int C2State)
 {
   String c1state = "OFF";
   String c2state = "OFF"; 
   
-  if(C1State)
+  if(C1State==-1)
+    c1state = "STOP";
+  else if(C1State==0)
+    c1state = "OFF";
+  else if(C1State==1)
     c1state = "ON";
-  if(C2State)
+    
+  if(C2State==-1)
+    c2state = "STOP";
+  else if(C2State==0)
+    c2state = "OFF";
+  else if(C2State==1)
     c2state = "ON";
  
   String line = "C1=" + String(c1state) + " | " + "C2=" + String(c2state);
@@ -275,20 +288,27 @@ void printHeaterStatusLCD(int C1State, int C2State)
   lcd.setCursor(0,0); //ponemos el cursos en la columna 0, fila 1
   lcd.print(line); //imprimos este texto
 }
-/*******************************************************************************************/
 
-
-void fijarEstado(byte systemState)
+void fixState(byte systemState)
 {
   switch (systemState)
- {
-   case C1OFF_C2OFF:
-     calentador1=0;
-     calentador2=0;
-     digitalWrite(LED1, LOW);
-     digitalWrite(LED2, LOW);
-     digitalWrite(RELAY1,LOW); 
-     digitalWrite(RELAY2,LOW); 
+  {
+    case C1STOP_C2STOP:
+      calentador1=-1;
+      calentador2=-1;
+      digitalWrite(LED1, LOW);
+      digitalWrite(LED2, LOW);
+      digitalWrite(RELAY1,LOW); 
+      digitalWrite(RELAY2,LOW); 
+      break;
+    
+    case C1OFF_C2OFF:
+      calentador1=0;
+      calentador2=0;
+      digitalWrite(LED1, LOW);
+      digitalWrite(LED2, LOW);
+      digitalWrite(RELAY1,LOW); 
+      digitalWrite(RELAY2,LOW); 
     break;
   
      case C1ON_C2OFF:
@@ -320,29 +340,24 @@ void fijarEstado(byte systemState)
  
    default:
     break;   
- }// FIN DEL SWITCH  
+ }// FIN del SWITCH  
+ 
+ EEPROM.write(DIRECCION_STATE_EEPROM,systemState);
 }
-/*******************************************************************************************/
 
-// Funcion que se ejecuta al pulsar el boton de STOP
-void ServicioBotonStop()
-{
-  fijarEstado(C1OFF_C2OFF);
-  while(1)
+
+void botonStop() 
+{    
+  byte state_aux;  
+  state_aux = EEPROM.read(DIRECCION_STATE_EEPROM);
+  if(state_aux == C1STOP_C2STOP)
   {
-    wdt_reset(); // Actualizar el watchdog para que no produzca un reinicio
-    delay(2000); 
+    state = C1OFF_C2OFF;
+    EEPROM.write(DIRECCION_STATE_EEPROM,state);
+  }
+  else
+  {
+    state = C1STOP_C2STOP;
+    EEPROM.write(DIRECCION_STATE_EEPROM,state);
   }
 }
-/*******************************************************************************************/
-
-
-// Funcion que se ejecuta al pulsar el boton de CLEAR
-void ServicioBotonClear()
-{
-  // write a 0 to all 512 bytes of the EEPROM
-  for (int i = 0; i < 512; i++)
-    EEPROM.write(i, 0);
-  delay(200); 
-}
-/*******************************************************************************************/
