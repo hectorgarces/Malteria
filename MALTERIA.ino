@@ -348,6 +348,11 @@ void fixState(byte systemState)
 
 void botonStop() 
 {    
+  // Se deshabilitan la interrupción del boton STOP
+  detachInterrupt(0);
+  // Se añade una espera para ignorar los rebotes del pulsador
+  delay(500);
+     
   byte state_aux;  
   state_aux = EEPROM.read(DIRECCION_STATE_EEPROM);
   if(state_aux == C1STOP_C2STOP)
@@ -360,4 +365,7 @@ void botonStop()
     state = C1STOP_C2STOP;
     EEPROM.write(DIRECCION_STATE_EEPROM,state);
   }
+
+  // Se vuelve a habilitar la interrupción del boton STOP
+  attachInterrupt(0,botonStop,FALLING);
 }
