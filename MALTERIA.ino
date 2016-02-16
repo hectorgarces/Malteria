@@ -6,8 +6,8 @@
 #include <EEPROM.h>
 
 //Definicion de temperaturas limites
-#define TEMP_MIN  20  //En grados Celsius
-#define TEMP_MAX  22  //En grados Celsius
+#define TEMP_MIN  30  //En grados Celsius
+#define TEMP_MAX  32  //En grados Celsius
 
 // Definicion de tiempos de calentamiento y enfriamiento
 #define TIEMPO_CALENTAMIENTO  60L // En segundos y en formato LONG
@@ -27,14 +27,14 @@
      VCC --> 5V  
      COM --> 5V (con alimentacion externa)
      
-     IN1  --> D11  
-     IN2  --> D10
-     IN3  --> D9
-     IN4  --> D8  */
-#define RELAY1  11     // se definen los pines donde se conectaran los reles                
-#define RELAY2  10                        
-#define RELAY3  9                        
-#define RELAY4  8
+     RELE_1  --> D7  
+     RELE_2  --> D6
+     RELE_3  --> D5
+     RELE_4  --> D4  */
+#define RELAY1  7     // se definen los pines donde se conectaran los reles                
+#define RELAY2  6                        
+#define RELAY3  5                        
+#define RELAY4  4
 
 // Posibles estados del sistema
 #define C1STOP_C2STOP  0x00
@@ -350,22 +350,23 @@ void botonStop()
 {    
   // Se deshabilitan la interrupción del boton STOP
   detachInterrupt(0);
-  // Se añade una espera para ignorar los rebotes del pulsador
-  delay(500);
      
   byte state_aux;  
   state_aux = EEPROM.read(DIRECCION_STATE_EEPROM);
   if(state_aux == C1STOP_C2STOP)
   {
-    state = C1OFF_C2OFF;
-    EEPROM.write(DIRECCION_STATE_EEPROM,state);
+    state = C1OFF_C2OFF;    
   }
   else
   {
     state = C1STOP_C2STOP;
-    EEPROM.write(DIRECCION_STATE_EEPROM,state);
   }
-
+  //EEPROM.write(DIRECCION_STATE_EEPROM,state);
+  fixState(state);
+  // Se añade una espera para ignorar los rebotes del pulsador
+  delay(1000);
+  //printTempLCD(temperatura1, temperatura2);
+  //printHeaterStatusLCD(calentador1, calentador2);
   // Se vuelve a habilitar la interrupción del boton STOP
   attachInterrupt(0,botonStop,FALLING);
 }
